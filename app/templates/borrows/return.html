@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Process Book Return — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.borrows_list') }}">Borrows</a></li>
+        <li class="breadcrumb-item active">Return Book</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-box-arrow-in-left text-primary me-2"></i> Confirm Book Return</span>
+            </div>
+            <div class="card-body">
+                <!-- Book & Member Summary -->
+                <div class="p-3 rounded mb-4" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Book Title</small>
+                            <span class="fs-6 fw-bold">{{ borrow.book.title }}</span>
+                            <small class="text-muted d-block">by {{ borrow.book.author }}</small>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Borrower / Patron</small>
+                            <span class="fs-6 fw-bold">{{ borrow.member.name }}</span>
+                            <small class="text-muted d-block">{{ borrow.member.email }}</small>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Borrowed On</small>
+                            <span class="fw-semibold">{{ borrow.borrow_date|format_date }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Due Date</small>
+                            <span class="fw-semibold {% if borrow.is_overdue() %}text-danger{% endif %}">{{ borrow.due_date|format_date }}</span>
+                        </div>
+                        <div class="col-sm-4">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Return Date</small>
+                            <span class="fw-semibold text-success">{{ now|format_date }} (Today)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Overdue Fine Alert if late -->
+                {% if borrow.is_overdue() %}
+                <div class="alert alert-warning mb-4">
+                    <i class="bi bi-exclamation-triangle-fill fs-4 text-warning"></i>
+                    <div>
+                        <div class="fw-bold fs-6">Overdue Return Penalty Incurred</div>
+                        <div>This book is <strong>{{ overdue_days }} days past due</strong>. The calculated penalty fee is <strong class="text-danger">${{ "%.2f"|format(fine_amount) }}</strong> ($1.00/day).</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-4">
+                    <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                    <div>
+                        <div class="fw-bold">On-Time Return</div>
+                        <div>Book returned within the allotted loan window. No fines or penalties applicable.</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Return Form -->
+                <form method="POST" action="{{ url_for('main.borrows_return', id=borrow.id) }}">
+                    {% if borrow.is_overdue() %}
+                    <div class="form-check form-switch p-3 rounded mb-4" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color); padding-left: 3rem;">
+                        <input class="form-check-input" type="checkbox" id="payFineCheckbox" name="pay_fine" checked>
+                        <label class="form-check-label fw-bold" for="payFineCheckbox">
+                            Collect and mark late fine of ${{ "%.2f"|format(fine_amount) }} as PAID now
+                        </label>
+                        <small class="text-muted d-block mt-1">If unselected, the ${{ "%.2f"|format(fine_amount) }} balance will remain unpaid on the member's account.</small>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-end gap-2 pt-2 border-top">
+                        <a href="{{ url_for('main.borrows_list') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check2-circle"></i> Confirm Return &amp; Restock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics &amp; Statistics — Library Management System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-graph-up-arrow"></i> Library Analytics &amp; Statistics
+        </h1>
+        <p class="page-subtitle">Visual performance indicators, borrowing activity trends, and collection insights</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('main.books_list') }}" class="btn btn-secondary">
+            <i class="bi bi-book"></i> Catalog
+        </a>
+        <a href="{{ url_for('main.borrows_list') }}" class="btn btn-primary">
+            <i class="bi bi-arrow-left-right"></i> All Loans
+        </a>
+    </div>
+</div>
+
+<!-- KPI Summary Strip -->
+<div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="stat-label">Total Titles</div>
+            <div class="stat-value text-primary">{{ total_books }}</div>
+            <small class="text-muted d-block mt-1">Across {{ category_labels|length }} categories</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern success">
+            <div class="stat-label">Total Completed Loans</div>
+            <div class="stat-value text-success">{{ returned_borrows }}</div>
+            <small class="text-muted d-block mt-1">Successfully returned</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern warning">
+            <div class="stat-label">Active Circulation</div>
+            <div class="stat-value text-warning">{{ active_borrows }}</div>
+            <small class="text-muted d-block mt-1">{{ overdue_borrows }} currently overdue</small>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern info">
+            <div class="stat-label">Fine Recovery</div>
+            <div class="stat-value text-info">
+                {% set total_f = paid_fines + unpaid_fines %}
+                {% if total_f > 0 %}
+                    {{ ((paid_fines / total_f) * 100)|round|int }}%
+                {% else %}
+                    100%
+                {% endif %}
+            </div>
+            <small class="text-muted d-block mt-1">${{ "%.2f"|format(paid_fines) }} collected</small>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Charts Grid -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Borrowing Trends -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-activity text-primary me-2"></i> Monthly Loan Activity Trends</span>
+                <span class="badge badge-soft-primary">Last 6 Months</span>
+            </div>
+            <div class="card-body">
+                <canvas id="trendsChart" height="260"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Category Distribution -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-pie-chart text-primary me-2"></i> Category Breakdown</span>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="width: 100%; max-width: 280px;">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Loan Status Ratio -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-bar-chart-steps text-primary me-2"></i> Circulation Status Ratio</span>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="width: 100%; max-width: 320px;">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 4: Patron Membership Tiers -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-person-badge text-primary me-2"></i> Membership Tier Distribution</span>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center">
+                <div style="width: 100%; max-width: 320px;">
+                    <canvas id="tierChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leaderboards Grid -->
+<div class="row g-4">
+    <!-- Top Most Borrowed Books -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-trophy text-warning me-2"></i> Top 5 Most Borrowed Titles</span>
+            </div>
+            <div class="card-body p-0">
+                {% if top_books %}
+                <div class="list-group list-group-flush">
+                    {% for book in top_books %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fw-bold fs-5 text-muted" style="width: 24px;">#{{ loop.index }}</span>
+                            <div>
+                                <a href="{{ url_for('main.books_detail', id=book.id) }}" class="fw-semibold text-decoration-none d-block">
+                                    {{ book.title }}
+                                </a>
+                                <small class="text-muted">{{ book.author }} &bull; {{ book.category or 'General' }}</small>
+                            </div>
+                        </div>
+                        <span class="badge badge-soft-warning fs-6">
+                            {{ book.borrow_count }} loans
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted p-4 text-center">No borrowing data recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Most Active Members -->
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-star text-primary me-2"></i> Top 5 Most Active Patrons</span>
+            </div>
+            <div class="card-body p-0">
+                {% if top_members %}
+                <div class="list-group list-group-flush">
+                    {% for member in top_members %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fw-bold fs-5 text-muted" style="width: 24px;">#{{ loop.index }}</span>
+                            <div>
+                                <a href="{{ url_for('main.members_detail', id=member.id) }}" class="fw-semibold text-decoration-none d-block">
+                                    {{ member.name }}
+                                </a>
+                                <small class="text-muted">{{ member.email }}</small>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-soft-primary fs-6">
+                                {{ member.borrow_count }} borrowings
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted p-4 text-center">No member borrowing activity recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Determine text colors based on dark/light mode
+    const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+
+    // Modern color palette
+    const colors = [
+        '#4f46e5', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4',
+        '#f43f5e', '#ec4899', '#3b82f6', '#14b8a6', '#6366f1'
+    ];
+
+    // Fetch dynamic stats from API
+    fetch("{{ url_for('main.api_stats') }}")
+        .then(response => response.json())
+        .then(data => {
+            // 1. Monthly Trends Chart
+            const ctxTrends = document.getElementById('trendsChart').getContext('2d');
+            new Chart(ctxTrends, {
+                type: 'line',
+                data: {
+                    labels: data.trends.labels,
+                    datasets: [{
+                        label: 'Loan Volume',
+                        data: data.trends.data,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.35,
+                        pointBackgroundColor: '#4f46e5',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { precision: 0, color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            // 2. Category Distribution Doughnut
+            const ctxCategory = document.getElementById('categoryChart').getContext('2d');
+            new Chart(ctxCategory, {
+                type: 'doughnut',
+                data: {
+                    labels: data.categories.labels,
+                    datasets: [{
+                        data: data.categories.data,
+                        backgroundColor: colors.slice(0, data.categories.labels.length),
+                        borderWidth: 2,
+                        borderColor: isDark ? '#111827' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, color: textColor, padding: 12 } }
+                    },
+                    cutout: '65%'
+                }
+            });
+
+            // 3. Status Ratio Chart
+            const ctxStatus = document.getElementById('statusChart').getContext('2d');
+            new Chart(ctxStatus, {
+                type: 'pie',
+                data: {
+                    labels: data.status.labels,
+                    datasets: [{
+                        data: data.status.data,
+                        backgroundColor: ['#10b981', '#f43f5e', '#64748b'],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#111827' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, color: textColor, padding: 12 } }
+                    }
+                }
+            });
+
+            // 4. Membership Tier Breakdown
+            const ctxTier = document.getElementById('tierChart').getContext('2d');
+            new Chart(ctxTier, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Standard Members', 'Premium Members'],
+                    datasets: [{
+                        data: [{{ standard_members }}, {{ premium_members }}],
+                        backgroundColor: ['#3b82f6', '#f59e0b'],
+                        borderWidth: 2,
+                        borderColor: isDark ? '#111827' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, color: textColor, padding: 12 } }
+                    },
+                    cutout: '60%'
+                }
+            });
+        })
+        .catch(err => console.error('Error fetching analytics data:', err));
+});
+</script>
+{% endblock %}

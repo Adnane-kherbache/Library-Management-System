@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout Book — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.borrows_list') }}">Borrows</a></li>
+        <li class="breadcrumb-item active">New Loan</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <span><i class="bi bi-cart-check text-primary me-2"></i> Issue Book Loan</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.borrows_checkout') }}" id="checkoutForm">
+                    <div class="row g-4">
+                        <!-- Book Selection -->
+                        <div class="col-12">
+                            <label for="book_id" class="form-label">Select Book <span class="text-danger">*</span></label>
+                            <select class="form-select" id="book_id" name="book_id" required>
+                                <option value="">-- Choose a title from catalog --</option>
+                                {% for book in books %}
+                                <option value="{{ book.id }}" 
+                                        data-title="{{ book.title }}"
+                                        data-author="{{ book.author }}"
+                                        data-category="{{ book.category or 'General' }}"
+                                        data-available="{{ book.available }}"
+                                        {% if preset_book_id == book.id %}selected{% endif %}>
+                                    {{ book.title }} by {{ book.author }} ({{ book.available }} available)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            
+                            <!-- Dynamic Book Preview Box -->
+                            <div id="bookPreviewCard" class="mt-2 p-3 rounded" style="display: none; background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold" id="previewBookTitle"></div>
+                                        <small class="text-muted" id="previewBookAuthor"></small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge badge-soft-primary" id="previewBookCategory"></span>
+                                        <div class="small text-success fw-bold mt-1" id="previewBookAvailable"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Member Selection -->
+                        <div class="col-12">
+                            <label for="member_id" class="form-label">Select Borrower / Patron <span class="text-danger">*</span></label>
+                            <select class="form-select" id="member_id" name="member_id" required>
+                                <option value="">-- Choose a registered member --</option>
+                                {% for member in members %}
+                                <option value="{{ member.id }}"
+                                        data-name="{{ member.name }}"
+                                        data-email="{{ member.email }}"
+                                        data-tier="{{ member.membership_type }}"
+                                        data-active="{{ member.active_borrows_count }}"
+                                        data-max="{{ member.max_books_allowed }}"
+                                        {% if preset_member_id == member.id %}selected{% endif %}>
+                                    {{ member.name }} ({{ member.email }}) — {{ member.membership_type|capitalize }} Tier
+                                </option>
+                                {% endfor %}
+                            </select>
+
+                            <!-- Dynamic Member Preview Box -->
+                            <div id="memberPreviewCard" class="mt-2 p-3 rounded" style="display: none; background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="fw-bold" id="previewMemberName"></div>
+                                        <small class="text-muted" id="previewMemberEmail"></small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span id="previewMemberTier"></span>
+                                        <div class="small fw-semibold mt-1" id="previewActiveBorrows"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loan Period in Days -->
+                        <div class="col-md-6">
+                            <label class="form-label">Loan Duration (Days) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="borrow_days" name="borrow_days" value="14" min="1" max="90" required>
+                            <small class="text-muted">Standard loans: 14 days &bull; Premium loans: 30 days</small>
+                        </div>
+
+                        <!-- Notes / Reference -->
+                        <div class="col-md-6">
+                            <label class="form-label">Circulation Notes (Optional)</label>
+                            <input type="text" class="form-control" name="notes" placeholder="Condition, pickup notes, etc.">
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.borrows_list') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-cart-check"></i> Complete Checkout
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

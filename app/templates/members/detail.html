@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}{{ member.name }} — Member Profile{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.members_list') }}">Members</a></li>
+        <li class="breadcrumb-item active">{{ member.name }}</li>
+    </ol>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Member Profile & Borrowing Gauge -->
+    <div class="col-lg-4">
+        <!-- Profile Card -->
+        <div class="card mb-4">
+            <div class="card-body text-center p-4">
+                <div class="stat-icon-wrapper stat-icon-primary mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <h4 class="fw-bold mb-1">{{ member.name }}</h4>
+                <p class="text-muted small mb-2">{{ member.email }}</p>
+                
+                <div class="d-flex justify-content-center gap-2 mb-3">
+                    {% if member.membership_type == 'premium' %}
+                    <span class="badge badge-soft-warning">
+                        <i class="bi bi-star-fill text-warning"></i> Premium Patron
+                    </span>
+                    {% else %}
+                    <span class="badge badge-soft-secondary">
+                        Standard Patron
+                    </span>
+                    {% endif %}
+
+                    {% if member.is_active %}
+                    <span class="badge badge-soft-success">Active</span>
+                    {% else %}
+                    <span class="badge badge-soft-danger">Suspended</span>
+                    {% endif %}
+                </div>
+
+                <!-- Borrowing Capacity Progress Bar -->
+                {% set max_allowed = member.max_books_allowed %}
+                {% set current_active = active_borrows|length %}
+                {% set pct = (current_active / max_allowed * 100)|round|int %}
+                <div class="p-3 rounded mb-3" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center mb-1 small fw-bold">
+                        <span>Borrowing Capacity</span>
+                        <span>{{ current_active }} / {{ max_allowed }} Books</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar {% if pct >= 100 %}bg-danger{% elif pct >= 70 %}bg-warning{% else %}bg-primary{% endif %}" 
+                             role="progressbar" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <small class="text-muted d-block mt-2 text-start" style="font-size: 0.75rem;">
+                        {{ max_allowed - current_active }} book slots currently available.
+                    </small>
+                </div>
+
+                <!-- Contact & Account Details -->
+                <div class="text-start small">
+                    <div class="mb-2">
+                        <span class="text-muted d-block">Phone:</span>
+                        <span class="fw-semibold">{{ member.phone or 'Not provided' }}</span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-muted d-block">Address:</span>
+                        <span class="fw-semibold">{{ member.address or 'No address on file' }}</span>
+                    </div>
+                    <div>
+                        <span class="text-muted d-block">Registered On:</span>
+                        <span class="fw-semibold">{{ member.registration_date|format_date }}</span>
+                    </div>
+                </div>
+
+                <!-- Fines Summary Banner -->
+                {% if total_fines > 0 %}
+                <div class="alert alert-danger mt-3 mb-0 text-start">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <div>
+                        <div class="fw-bold">Unpaid Fines: ${{ "%.2f"|format(total_fines) }}</div>
+                        <small>Please collect payment or waive below.</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="d-flex gap-2 justify-content-center mt-4 pt-3 border-top">
+                    {% if member.can_borrow_more() %}
+                    <a href="{{ url_for('main.borrows_checkout', member_id=member.id) }}" class="btn btn-sm btn-primary">
+                        <i class="bi bi-cart-plus"></i> New Loan
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('main.members_edit', id=member.id) }}" class="btn btn-sm btn-secondary">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <form method="POST" action="{{ url_for('main.members_delete', id=member.id) }}" class="d-inline"
+                          onsubmit="return confirmDelete('Are you sure you want to delete this member account?')">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" {% if active_borrows %}disabled title="Cannot delete member with active loans"{% endif %}>
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Active Loans & Borrowing History -->
+    <div class="col-lg-8">
+        <!-- Currently Borrowed Books -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <span><i class="bi bi-book-half text-primary me-2"></i> Currently Borrowed Books</span>
+                <span class="badge badge-soft-warning">{{ active_borrows|length }} Active</span>
+            </div>
+            <div class="card-body p-0">
+                {% if active_borrows %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Loan Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for borrow in active_borrows %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('main.books_detail', id=borrow.book.id) }}" class="fw-bold text-decoration-none">
+                                        {{ borrow.book.title }}
+                                    </a>
+                                    <small class="text-muted d-block">{{ borrow.book.author }}</small>
+                                </td>
+                                <td>{{ borrow.borrow_date|format_date }}</td>
+                                <td>
+                                    <span class="{% if borrow.is_overdue() %}text-danger fw-bold{% else %}fw-semibold{% endif %}">
+                                        {{ borrow.due_date|format_date }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if borrow.is_overdue() %}
+                                    <span class="badge badge-soft-danger">
+                                        <i class="bi bi-exclamation-triangle"></i> {{ borrow.due_date|days_overdue }} days late
+                                    </span>
+                                    {% else %}
+                                    <span class="badge badge-soft-success">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <!-- Return Form -->
+                                        <form method="POST" action="{{ url_for('main.borrows_return', id=borrow.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-success" title="Return Book">
+                                                <i class="bi bi-check-lg"></i> Return
+                                            </button>
+                                        </form>
+                                        <!-- Extend Form (if not overdue) -->
+                                        {% if not borrow.is_overdue() %}
+                                        <form method="POST" action="{{ url_for('main.borrows_extend', id=borrow.id) }}" class="d-inline ms-1">
+                                            <button type="submit" class="btn btn-secondary" title="Extend by 7 days">
+                                                <i class="bi bi-plus"></i> 7d
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small">
+                    <i class="bi bi-check2-circle fs-3 text-success d-block mb-1"></i>
+                    This member has no active loans at this time.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Borrowing History -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-clock-history text-secondary me-2"></i> Borrowing History</span>
+                <span class="badge badge-soft-secondary">{{ borrow_history|length }} Records</span>
+            </div>
+            <div class="card-body p-0">
+                {% if borrow_history %}
+                <div class="table-responsive" style="max-height: 420px;">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Borrowed</th>
+                                <th>Returned</th>
+                                <th>Status</th>
+                                <th>Fine</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for b in borrow_history %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('main.books_detail', id=b.book.id) }}" class="fw-semibold text-decoration-none">
+                                        {{ b.book.title }}
+                                    </a>
+                                </td>
+                                <td>{{ b.borrow_date|format_date }}</td>
+                                <td>{{ b.return_date|format_date if b.return_date else '—' }}</td>
+                                <td>
+                                    {% if b.status == 'returned' %}
+                                    <span class="badge badge-soft-secondary">Returned</span>
+                                    {% elif b.is_overdue() %}
+                                    <span class="badge badge-soft-danger">Overdue</span>
+                                    {% else %}
+                                    <span class="badge badge-soft-warning">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if b.fine_amount > 0 %}
+                                    <span class="fw-bold {% if b.fine_paid %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ "%.2f"|format(b.fine_amount) }}
+                                        <small>({{ 'Paid' if b.fine_paid else 'Unpaid' }})</small>
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">$0.00</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small">
+                    No borrowing transactions on record yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} — Book Details{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.books_list') }}">Books</a></li>
+        <li class="breadcrumb-item active">{{ book.title }}</li>
+    </ol>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Book Profile & Metadata -->
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="badge badge-soft-primary fs-6">{{ book.category or 'General Literature' }}</span>
+                <div>
+                    {% if book.is_available() %}
+                    <span class="badge badge-soft-success">
+                        <span class="status-dot"></span> {{ book.available }} Available
+                    </span>
+                    {% else %}
+                    <span class="badge badge-soft-danger">
+                        <span class="status-dot"></span> All Copies Loaned Out
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <h2 class="h3 fw-bold mb-1">{{ book.title }}</h2>
+                <h5 class="text-muted fw-normal mb-4">by <span class="text-primary fw-semibold">{{ book.author }}</span></h5>
+
+                <!-- Key Specs Grid -->
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">ISBN-13</small>
+                            <code class="fs-6 fw-bold text-primary">{{ book.isbn }}</code>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Publication Year</small>
+                            <span class="fs-6 fw-bold">{{ book.publication_year or 'Unknown' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Publisher</small>
+                            <span class="fs-6 fw-semibold">{{ book.publisher or 'Unspecified' }}</span>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="p-3 rounded" style="background: var(--bg-surface-elevated); border: 1px solid var(--border-color);">
+                            <small class="text-muted text-uppercase fw-bold d-block" style="font-size: 0.75rem;">Copies Inventory</small>
+                            <span class="fs-6 fw-bold">
+                                {{ book.available }} <span class="text-muted fw-normal">of {{ book.quantity }} in library</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Synopsis / Description -->
+                <div class="mb-4">
+                    <h6 class="fw-bold text-uppercase small text-muted mb-2">Description / Synopsis</h6>
+                    <p class="text-secondary" style="line-height: 1.7;">
+                        {{ book.description or 'No formal synopsis recorded for this title.' }}
+                    </p>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="d-flex flex-wrap gap-2 pt-3 border-top">
+                    {% if book.is_available() %}
+                    <a href="{{ url_for('main.borrows_checkout', book_id=book.id) }}" class="btn btn-primary">
+                        <i class="bi bi-cart-check"></i> Checkout Book
+                    </a>
+                    {% else %}
+                    <button class="btn btn-secondary" disabled>
+                        <i class="bi bi-clock"></i> Currently Unavailable
+                    </button>
+                    {% endif %}
+
+                    <a href="{{ url_for('main.books_edit', id=book.id) }}" class="btn btn-secondary">
+                        <i class="bi bi-pencil"></i> Edit Details
+                    </a>
+
+                    <form method="POST" action="{{ url_for('main.books_delete', id=book.id) }}" class="d-inline"
+                          onsubmit="return confirmDelete('Are you sure you want to permanently delete this book from the library?')">
+                        <button type="submit" class="btn btn-outline-danger" {% if active_borrows %}disabled title="Cannot delete book with active loans"{% endif %}>
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Active Loans & Borrow History -->
+    <div class="col-lg-5">
+        <!-- Current Active Borrowers -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <span><i class="bi bi-person-check text-primary me-2"></i> Current Borrowers</span>
+                <span class="badge badge-soft-warning">{{ active_borrows|length }} Active</span>
+            </div>
+            <div class="card-body p-0">
+                {% if active_borrows %}
+                <div class="list-group list-group-flush">
+                    {% for borrow in active_borrows %}
+                    <div class="list-group-item p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <a href="{{ url_for('main.members_detail', id=borrow.member.id) }}" class="fw-bold text-decoration-none">
+                                    {{ borrow.member.name }}
+                                </a>
+                                <small class="text-muted d-block">{{ borrow.member.email }}</small>
+                            </div>
+                            {% if borrow.is_overdue() %}
+                            <span class="badge badge-soft-danger">
+                                <i class="bi bi-exclamation-triangle"></i> Overdue
+                            </span>
+                            {% else %}
+                            <span class="badge badge-soft-success">
+                                Active Loan
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted d-flex justify-content-between align-items-center">
+                            <span>Due: <strong>{{ borrow.due_date|format_date }}</strong></span>
+                            <form method="POST" action="{{ url_for('main.borrows_return', id=borrow.id) }}">
+                                <button type="submit" class="btn btn-sm btn-success py-1 px-2">
+                                    <i class="bi bi-check-lg"></i> Return
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small">
+                    <i class="bi bi-check-circle fs-3 text-success d-block mb-2"></i>
+                    All copies are currently available in the library!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Borrowing History Log -->
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-clock-history text-secondary me-2"></i> Loan History</span>
+                <span class="badge badge-soft-secondary">{{ total_borrows }} Total</span>
+            </div>
+            <div class="card-body p-0">
+                {% if borrow_history %}
+                <div class="table-responsive" style="max-height: 380px;">
+                    <table class="table table-hover align-middle mb-0 small">
+                        <thead>
+                            <tr>
+                                <th>Patron</th>
+                                <th>Borrowed</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in borrow_history %}
+                            <tr>
+                                <td>
+                                    <a href="{{ url_for('main.members_detail', id=record.member.id) }}" class="fw-semibold text-decoration-none">
+                                        {{ record.member.name }}
+                                    </a>
+                                </td>
+                                <td>{{ record.borrow_date|format_date }}</td>
+                                <td>
+                                    {% if record.status == 'returned' %}
+                                    <span class="badge badge-soft-secondary">Returned</span>
+                                    {% elif record.is_overdue() %}
+                                    <span class="badge badge-soft-danger">Overdue</span>
+                                    {% else %}
+                                    <span class="badge badge-soft-warning">Active</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-4 text-center text-muted small">
+                    No borrowing records for this book yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

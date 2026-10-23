@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Loans &amp; Borrows — Library Management System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-arrow-left-right"></i> Circulation &amp; Loans
+        </h1>
+        <p class="page-subtitle">Track book checkout transactions, due dates, extensions, and returns</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('main.borrows_checkout') }}" class="btn btn-primary">
+            <i class="bi bi-cart-plus"></i> New Loan
+        </a>
+    </div>
+</div>
+
+<!-- Filters Card -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('main.borrows_list') }}" class="row g-3 align-items-end">
+            <!-- Search -->
+            <div class="col-lg-6 col-md-6">
+                <label class="form-label">Search Transactions</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Book title, member name, or email..." value="{{ search }}">
+                </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="col-lg-4 col-md-4">
+                <label class="form-label">Loan Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All Transactions</option>
+                    <option value="active" {% if status == 'active' %}selected{% endif %}>Active (On-time)</option>
+                    <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue (Late)</option>
+                    <option value="returned" {% if status == 'returned' %}selected{% endif %}>Returned</option>
+                </select>
+            </div>
+
+            <!-- Submit -->
+            <div class="col-lg-2 col-md-2">
+                <button type="submit" class="btn btn-primary w-100" title="Filter">
+                    <i class="bi bi-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Header -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="text-muted small">
+        Showing <span class="fw-bold text-primary">{{ borrows.total }}</span> loan records
+        {% if status or search %}
+        <span class="badge badge-soft-primary ms-1">Filtered</span>
+        <a href="{{ url_for('main.borrows_list') }}" class="text-decoration-none ms-2 small">Clear filter</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Borrows Table -->
+{% if borrows.items %}
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Borrower</th>
+                        <th>Borrowed On</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Fine Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for borrow in borrows.items %}
+                    <tr {% if borrow.is_overdue() and borrow.status == 'active' %}class="table-danger bg-opacity-25"{% endif %}>
+                        <!-- Book -->
+                        <td>
+                            <a href="{{ url_for('main.books_detail', id=borrow.book.id) }}" class="fw-bold text-decoration-none">
+                                {{ borrow.book.title }}
+                            </a>
+                            <small class="text-muted d-block">{{ borrow.book.author }}</small>
+                        </td>
+
+                        <!-- Borrower -->
+                        <td>
+                            <a href="{{ url_for('main.members_detail', id=borrow.member.id) }}" class="fw-semibold text-decoration-none">
+                                {{ borrow.member.name }}
+                            </a>
+                            <small class="text-muted d-block">{{ borrow.member.email }}</small>
+                        </td>
+
+                        <!-- Borrow Date -->
+                        <td>{{ borrow.borrow_date|format_date }}</td>
+
+                        <!-- Due Date -->
+                        <td>
+                            <span class="{% if borrow.is_overdue() and borrow.status == 'active' %}text-danger fw-bold{% else %}fw-semibold{% endif %}">
+                                {{ borrow.due_date|format_date }}
+                            </span>
+                            {% if borrow.status == 'active' and borrow.is_overdue() %}
+                            <small class="text-danger d-block">
+                                {{ borrow.due_date|days_overdue }} days late
+                            </small>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status Badge -->
+                        <td>
+                            {% if borrow.status == 'returned' %}
+                            <span class="badge badge-soft-secondary">
+                                <i class="bi bi-check2"></i> Returned on {{ borrow.return_date|format_date }}
+                            </span>
+                            {% elif borrow.is_overdue() %}
+                            <span class="badge badge-soft-danger">
+                                <span class="status-dot pulse"></span> Overdue
+                            </span>
+                            {% else %}
+                            <span class="badge badge-soft-warning">
+                                <span class="status-dot"></span> Active
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Fine Column -->
+                        <td>
+                            {% if borrow.fine_amount > 0 %}
+                                <span class="fw-bold {% if borrow.fine_paid %}text-success{% else %}text-danger{% endif %}">
+                                    ${{ "%.2f"|format(borrow.fine_amount) }}
+                                </span>
+                                {% if borrow.fine_paid %}
+                                <span class="badge badge-soft-success ms-1 small">Paid</span>
+                                {% else %}
+                                <span class="badge badge-soft-danger ms-1 small">Unpaid</span>
+                                {% endif %}
+                            {% elif borrow.status == 'active' and borrow.is_overdue() %}
+                                <span class="fw-bold text-danger">
+                                    ${{ "%.2f"|format(borrow.calculate_fine()) }}
+                                </span>
+                                <span class="badge badge-soft-warning ms-1 small">Pending</span>
+                            {% else %}
+                                <span class="text-muted">$0.00</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Action Buttons -->
+                        <td class="text-end">
+                            {% if borrow.status == 'active' %}
+                            <div class="btn-group btn-group-sm">
+                                <!-- Return Book Form -->
+                                <form method="POST" action="{{ url_for('main.borrows_return', id=borrow.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-success" title="Mark as returned">
+                                        <i class="bi bi-check-lg"></i> Return
+                                    </button>
+                                </form>
+
+                                <!-- Extend Loan (if not overdue) -->
+                                {% if not borrow.is_overdue() %}
+                                <form method="POST" action="{{ url_for('main.borrows_extend', id=borrow.id) }}" class="d-inline ms-1">
+                                    <button type="submit" class="btn btn-secondary" title="Extend loan period by 7 days">
+                                        <i class="bi bi-clock-history"></i> +7d
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                                {% if borrow.fine_amount > 0 and not borrow.fine_paid %}
+                                <form method="POST" action="{{ url_for('main.borrows_pay_fine', id=borrow.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-success" title="Collect Fine Payment">
+                                        <i class="bi bi-cash"></i> Pay Fine
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">Completed</span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if borrows.pages > 1 %}
+<nav class="d-flex justify-content-center">
+    <ul class="pagination">
+        <li class="page-item {% if not borrows.has_prev %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('main.borrows_list', page=borrows.prev_num, search=search, status=status) }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% for page_num in borrows.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if page_num %}
+                <li class="page-item {% if page_num == borrows.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('main.borrows_list', page=page_num, search=search, status=status) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if not borrows.has_next %}disabled{% endif %}">
+            <a class="page-link" href="{{ url_for('main.borrows_list', page=borrows.next_num, search=search, status=status) }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-inbox"></i></div>
+            <div class="empty-state-title">No transactions found</div>
+            <p class="empty-state-desc">There are currently no borrowing records matching your filter parameters.</p>
+            <a href="{{ url_for('main.borrows_checkout') }}" class="btn btn-primary">Create New Loan</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

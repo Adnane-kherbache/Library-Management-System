@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Register Member — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.members_list') }}">Members</a></li>
+        <li class="breadcrumb-item active">Register Member</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-person-plus text-primary me-2"></i> Register New Library Member</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.members_add') }}">
+                    <div class="row g-3">
+                        <!-- Full Name -->
+                        <div class="col-md-12">
+                            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" placeholder="e.g. Leila Bensalem" required>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" placeholder="e.g. leila.bensalem@example.com" required>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone" placeholder="e.g. +212 612-345678">
+                        </div>
+
+                        <!-- Membership Tier -->
+                        <div class="col-md-12">
+                            <label class="form-label">Membership Tier</label>
+                            <select class="form-select" name="membership_type">
+                                <option value="standard" selected>Standard Member (up to 5 books, 14 days)</option>
+                                <option value="premium">Premium Member (up to 10 books, 30 days)</option>
+                            </select>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="col-md-12">
+                            <label class="form-label">Postal / Residential Address</label>
+                            <textarea class="form-control" name="address" rows="3" placeholder="Street, City, Postal Code..."></textarea>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.members_list') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Register Member
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Library Management System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-speedometer2"></i> Library Dashboard
+        </h1>
+        <p class="page-subtitle">Real-time overview of catalog inventory, member activities, and borrowing operations</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('main.borrows_checkout') }}" class="btn btn-primary">
+            <i class="bi bi-cart-plus"></i> New Loan
+        </a>
+        <a href="{{ url_for('main.books_add') }}" class="btn btn-secondary">
+            <i class="bi bi-journal-plus"></i> Add Book
+        </a>
+    </div>
+</div>
+
+<!-- KPI Metrics Grid -->
+<div class="row g-4 mb-4">
+    <!-- Books Metric -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Total Books</div>
+                    <div class="stat-value">{{ total_books }}</div>
+                    <small class="text-muted d-block mt-1">
+                        <span class="text-primary fw-semibold">{{ available_copies }}</span> of {{ total_copies }} copies in stock
+                    </small>
+                </div>
+                <div class="stat-icon-wrapper stat-icon-primary">
+                    <i class="bi bi-book"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Metric -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern success">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Registered Members</div>
+                    <div class="stat-value">{{ total_members }}</div>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-patch-check-fill text-success"></i> Active patrons
+                    </small>
+                </div>
+                <div class="stat-icon-wrapper stat-icon-success">
+                    <i class="bi bi-people"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Loans Metric -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern warning">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Active Loans</div>
+                    <div class="stat-value">{{ active_borrows }}</div>
+                    <small class="text-muted d-block mt-1">
+                        <i class="bi bi-clock-history text-warning"></i> Currently checked out
+                    </small>
+                </div>
+                <div class="stat-icon-wrapper stat-icon-warning">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overdue & Fines Metric -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card-modern danger">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Overdue &amp; Fines</div>
+                    <div class="stat-value text-danger">
+                        {{ overdue_count }}
+                        {% if overdue_count > 0 %}
+                        <span class="status-dot pulse ms-1" style="color: var(--accent-rose); vertical-align: middle;"></span>
+                        {% endif %}
+                    </div>
+                    <small class="text-danger fw-semibold d-block mt-1">
+                        ${{ "%.2f"|format(unpaid_fines) }} outstanding
+                    </small>
+                </div>
+                <div class="stat-icon-wrapper stat-icon-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Overdue Warning Banner (if any) -->
+{% if overdue_borrows %}
+<div class="card mb-4 border-danger">
+    <div class="card-header bg-danger bg-opacity-10 border-danger d-flex justify-content-between align-items-center">
+        <span class="text-danger fw-bold">
+            <i class="bi bi-exclamation-octagon-fill me-2"></i> Attention Required: Overdue Loans
+        </span>
+        <a href="{{ url_for('main.fines_list') }}" class="btn btn-sm btn-danger">
+            <i class="bi bi-cash-stack"></i> Fines Center
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Borrower</th>
+                        <th>Due Date</th>
+                        <th>Days Late</th>
+                        <th>Pending Fine</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for borrow in overdue_borrows %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('main.books_detail', id=borrow.book.id) }}" class="fw-bold text-decoration-none">
+                                {{ borrow.book.title }}
+                            </a>
+                            <small class="text-muted d-block">{{ borrow.book.author }}</small>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('main.members_detail', id=borrow.member.id) }}" class="text-decoration-none fw-semibold">
+                                {{ borrow.member.name }}
+                            </a>
+                            <small class="text-muted d-block">{{ borrow.member.email }}</small>
+                        </td>
+                        <td>
+                            <span class="text-danger fw-semibold">{{ borrow.due_date|format_date }}</span>
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-danger">
+                                <i class="bi bi-clock-history"></i> {{ borrow.due_date|days_overdue }} days late
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-bold text-danger">
+                                ${{ "%.2f"|format(borrow.calculate_fine()) }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <form method="POST" action="{{ url_for('main.borrows_return', id=borrow.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-success" title="Return Book">
+                                    <i class="bi bi-check-lg"></i> Return
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Main Section: Recent Additions & Popular Books -->
+<div class="row g-4">
+    <!-- Recently Added Books -->
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-stars text-primary me-2"></i> Recent Acquisitions</span>
+                <a href="{{ url_for('main.books_list') }}" class="btn btn-sm btn-outline-primary">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_books %}
+                <div class="list-group list-group-flush">
+                    {% for book in recent_books %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="stat-icon-wrapper stat-icon-primary mb-0" style="width: 42px; height: 42px; font-size: 1.1rem;">
+                                <i class="bi bi-book"></i>
+                            </div>
+                            <div>
+                                <a href="{{ url_for('main.books_detail', id=book.id) }}" class="fw-bold text-decoration-none d-block">
+                                    {{ book.title }}
+                                </a>
+                                <small class="text-muted">
+                                    by {{ book.author }} &bull; 
+                                    <span class="badge badge-soft-secondary">{{ book.category or 'General' }}</span>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            {% if book.is_available() %}
+                            <span class="badge badge-soft-success">
+                                <span class="status-dot"></span> {{ book.available }} available
+                            </span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">
+                                <span class="status-dot"></span> Borrowed
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="bi bi-journal-x"></i></div>
+                    <div class="empty-state-title">No books in catalog yet</div>
+                    <p class="empty-state-desc">Add your first book title to populate library records.</p>
+                    <a href="{{ url_for('main.books_add') }}" class="btn btn-primary">Add Book</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Most Borrowed Titles -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header">
+                <span><i class="bi bi-trophy text-warning me-2"></i> Most Borrowed</span>
+                <span class="badge badge-soft-primary">Leaderboard</span>
+            </div>
+            <div class="card-body p-0">
+                {% if most_borrowed %}
+                <div class="list-group list-group-flush">
+                    {% for book in most_borrowed %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="fw-bold fs-5 text-muted" style="width: 24px;">#{{ loop.index }}</div>
+                            <div>
+                                <a href="{{ url_for('main.books_detail', id=book.id) }}" class="fw-semibold text-decoration-none d-block">
+                                    {{ book.title }}
+                                </a>
+                                <small class="text-muted">{{ book.author }}</small>
+                            </div>
+                        </div>
+                        <span class="badge badge-soft-warning fs-6">
+                            <i class="bi bi-fire text-warning"></i> {{ book.borrow_count }} loans
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon"><i class="bi bi-bar-chart"></i></div>
+                    <div class="empty-state-title">No borrowing data yet</div>
+                    <p class="empty-state-desc">When members checkout books, popularity statistics will appear here.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

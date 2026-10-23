@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Add New Book — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.books_list') }}">Books</a></li>
+        <li class="breadcrumb-item active">Add New Book</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-journal-plus text-primary me-2"></i> Register New Book Title</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.books_add') }}">
+                    <div class="row g-3">
+                        <!-- Title -->
+                        <div class="col-md-12">
+                            <label class="form-label">Book Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" placeholder="e.g. Clean Code" required>
+                        </div>
+
+                        <!-- Author -->
+                        <div class="col-md-6">
+                            <label class="form-label">Author(s) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="author" placeholder="e.g. Robert C. Martin" required>
+                        </div>
+
+                        <!-- ISBN -->
+                        <div class="col-md-6">
+                            <label class="form-label">ISBN-10 / ISBN-13 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="isbn" placeholder="e.g. 9780132350884" required>
+                            <small class="text-muted">Standard 10 or 13 digit international book number</small>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label class="form-label">Category / Genre</label>
+                            <select class="form-select" name="category">
+                                <option value="">Select Category</option>
+                                <option value="Fiction">Fiction</option>
+                                <option value="Science Fiction">Science Fiction</option>
+                                <option value="Technology">Technology</option>
+                                <option value="Fantasy">Fantasy</option>
+                                <option value="Mystery">Mystery</option>
+                                <option value="Thriller">Thriller</option>
+                                <option value="History">History</option>
+                                <option value="Philosophy">Philosophy</option>
+                                <option value="Biography">Biography</option>
+                                <option value="Romance">Romance</option>
+                                <option value="Science">Science</option>
+                                <option value="Self-Help">Self-Help</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <!-- Publication Year -->
+                        <div class="col-md-3">
+                            <label class="form-label">Year Published</label>
+                            <input type="number" class="form-control" name="publication_year" placeholder="e.g. 2024" min="1000" max="2099">
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="col-md-3">
+                            <label class="form-label">Total Copies <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="quantity" value="1" min="1" required>
+                        </div>
+
+                        <!-- Publisher -->
+                        <div class="col-md-12">
+                            <label class="form-label">Publisher</label>
+                            <input type="text" class="form-control" name="publisher" placeholder="e.g. Prentice Hall">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-md-12">
+                            <label class="form-label">Synopsis / Description</label>
+                            <textarea class="form-control" name="description" rows="4" placeholder="Brief synopsis or summary of the book..."></textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.books_list') }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-lg"></i> Save to Catalog
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

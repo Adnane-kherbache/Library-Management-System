@@ -1,0 +1,20 @@
+# Flask Framework
+Flask==3.0.0
+Werkzeug==3.0.1
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.23
+
+# Forms and Validation (optional but recommended)
+Flask-WTF==1.2.1
+WTForms==3.1.1
+
+# Other utilities
+python-dotenv==1.0.0
+
+# Production Server (optional - for deployment)
+# gunicorn==21.2.0
+
+# Development tools (optional)
+# flask-debugtoolbar==0.14.1

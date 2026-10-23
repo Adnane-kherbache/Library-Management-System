@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ book.title }} — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.books_list') }}">Books</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.books_detail', id=book.id) }}">{{ book.title }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-pencil-square text-primary me-2"></i> Edit Book Details</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.books_edit', id=book.id) }}">
+                    <div class="row g-3">
+                        <!-- Title -->
+                        <div class="col-md-12">
+                            <label class="form-label">Book Title <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="title" value="{{ book.title }}" required>
+                        </div>
+
+                        <!-- Author -->
+                        <div class="col-md-6">
+                            <label class="form-label">Author(s) <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="author" value="{{ book.author }}" required>
+                        </div>
+
+                        <!-- ISBN -->
+                        <div class="col-md-6">
+                            <label class="form-label">ISBN-10 / ISBN-13 <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="isbn" value="{{ book.isbn }}" required>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="col-md-6">
+                            <label class="form-label">Category</label>
+                            <select class="form-select" name="category">
+                                <option value="">Select Category</option>
+                                {% for cat in ['Fiction', 'Science Fiction', 'Technology', 'Fantasy', 'Mystery', 'Thriller', 'History', 'Philosophy', 'Biography', 'Romance', 'Science', 'Self-Help', 'Other'] %}
+                                <option value="{{ cat }}" {% if book.category == cat %}selected{% endif %}>{{ cat }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Publication Year -->
+                        <div class="col-md-3">
+                            <label class="form-label">Publication Year</label>
+                            <input type="number" class="form-control" name="publication_year" value="{{ book.publication_year or '' }}" min="1000" max="2099">
+                        </div>
+
+                        <!-- Quantity -->
+                        <div class="col-md-3">
+                            <label class="form-label">Total Copies <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" name="quantity" value="{{ book.quantity }}" min="1" required>
+                            <small class="text-muted d-block mt-1">Currently loaned: {{ book.quantity - book.available }}</small>
+                        </div>
+
+                        <!-- Publisher -->
+                        <div class="col-md-12">
+                            <label class="form-label">Publisher</label>
+                            <input type="text" class="form-control" name="publisher" value="{{ book.publisher or '' }}">
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-md-12">
+                            <label class="form-label">Synopsis / Description</label>
+                            <textarea class="form-control" name="description" rows="4">{{ book.description or '' }}</textarea>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.books_detail', id=book.id) }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

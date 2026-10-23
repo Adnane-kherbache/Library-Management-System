@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Edit {{ member.name }} — Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb-wrapper">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.members_list') }}">Members</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('main.members_detail', id=member.id) }}">{{ member.name }}</a></li>
+        <li class="breadcrumb-item active">Edit</li>
+    </ol>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <span><i class="bi bi-person-gear text-primary me-2"></i> Edit Member Profile</span>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('main.members_edit', id=member.id) }}">
+                    <div class="row g-3">
+                        <!-- Full Name -->
+                        <div class="col-md-12">
+                            <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="name" value="{{ member.name }}" required>
+                        </div>
+
+                        <!-- Email -->
+                        <div class="col-md-6">
+                            <label class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" name="email" value="{{ member.email }}" required>
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="col-md-6">
+                            <label class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" name="phone" value="{{ member.phone or '' }}">
+                        </div>
+
+                        <!-- Membership Tier -->
+                        <div class="col-md-6">
+                            <label class="form-label">Membership Tier</label>
+                            <select class="form-select" name="membership_type">
+                                <option value="standard" {% if member.membership_type == 'standard' %}selected{% endif %}>Standard (5 books max)</option>
+                                <option value="premium" {% if member.membership_type == 'premium' %}selected{% endif %}>Premium (10 books max)</option>
+                            </select>
+                        </div>
+
+                        <!-- Status Toggle -->
+                        <div class="col-md-6">
+                            <label class="form-label">Account Status</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="isActiveSwitch" name="is_active" {% if member.is_active %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="isActiveSwitch">Active Account</label>
+                            </div>
+                        </div>
+
+                        <!-- Address -->
+                        <div class="col-md-12">
+                            <label class="form-label">Residential Address</label>
+                            <textarea class="form-control" name="address" rows="3">{{ member.address or '' }}</textarea>
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="col-12 d-flex justify-content-end gap-2 pt-3 border-top">
+                            <a href="{{ url_for('main.members_detail', id=member.id) }}" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results — Library Management System{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-search"></i> Global Library Search
+        </h1>
+        <p class="page-subtitle">Search across the entire catalog and patron directory simultaneously</p>
+    </div>
+</div>
+
+<!-- Search Input Card -->
+<div class="card mb-4">
+    <div class="card-body p-4">
+        <form method="GET" action="{{ url_for('main.search') }}">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" class="form-control" name="q" value="{{ query }}" 
+                       placeholder="Search by book title, author, ISBN, member name, or email..." autofocus>
+                <button type="submit" class="btn btn-primary px-4">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if query %}
+<!-- Query Results Summary -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h5 class="mb-0">
+        Results for <span class="text-primary fw-bold">"{{ query }}"</span>
+    </h5>
+    <div class="small text-muted">
+        Found {{ books|length }} books &bull; {{ members|length }} members
+    </div>
+</div>
+
+<!-- Books Matches Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-book text-primary me-2"></i> Book Matches ({{ books|length }})</span>
+        {% if books %}
+        <span class="badge badge-soft-primary">Catalog</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if books %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Title &amp; Author</th>
+                        <th>ISBN</th>
+                        <th>Category</th>
+                        <th>Availability</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for book in books %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('main.books_detail', id=book.id) }}" class="fw-bold text-decoration-none">
+                                {{ book.title }}
+                            </a>
+                            <small class="text-muted d-block">by {{ book.author }}</small>
+                        </td>
+                        <td><code>{{ book.isbn }}</code></td>
+                        <td>
+                            <span class="badge badge-soft-secondary">{{ book.category or 'General' }}</span>
+                        </td>
+                        <td>
+                            {% if book.is_available() %}
+                            <span class="badge badge-soft-success">
+                                <span class="status-dot"></span> {{ book.available }} available
+                            </span>
+                            {% else %}
+                            <span class="badge badge-soft-danger">
+                                <span class="status-dot"></span> Out of Stock
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('main.books_detail', id=book.id) }}" class="btn btn-sm btn-outline-primary">
+                                View Book
+                            </a>
+                            {% if book.is_available() %}
+                            <a href="{{ url_for('main.borrows_checkout', book_id=book.id) }}" class="btn btn-sm btn-primary ms-1">
+                                Loan
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted small">
+            No books found matching "{{ query }}".
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Member Matches Section -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-people text-primary me-2"></i> Member Matches ({{ members|length }})</span>
+        {% if members %}
+        <span class="badge badge-soft-primary">Directory</span>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if members %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Member Name</th>
+                        <th>Email &amp; Phone</th>
+                        <th>Tier</th>
+                        <th>Active Loans</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for member in members %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('main.members_detail', id=member.id) }}" class="fw-bold text-decoration-none">
+                                {{ member.name }}
+                            </a>
+                        </td>
+                        <td>
+                            <div>{{ member.email }}</div>
+                            {% if member.phone %}
+                            <small class="text-muted">{{ member.phone }}</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if member.membership_type == 'premium' %}
+                            <span class="badge badge-soft-warning">Premium</span>
+                            {% else %}
+                            <span class="badge badge-soft-secondary">Standard</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge badge-soft-primary">
+                                {{ member.active_borrows_count }} books
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('main.members_detail', id=member.id) }}" class="btn btn-sm btn-outline-primary">
+                                View Profile
+                            </a>
+                            {% if member.can_borrow_more() %}
+                            <a href="{{ url_for('main.borrows_checkout', member_id=member.id) }}" class="btn btn-sm btn-primary ms-1">
+                                Issue Loan
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted small">
+            No member accounts found matching "{{ query }}".
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% else %}
+<!-- Default Initial State -->
+<div class="card">
+    <div class="card-body">
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-search"></i></div>
+            <div class="empty-state-title">Search the Library</div>
+            <p class="empty-state-desc">Enter any keyword above to search through titles, authors, categories, ISBNs, member names, or emails.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
