@@ -1,4 +1,4 @@
-# 📚 Neo-Bibliotheca — Library Management System
+# 📚 Library Management System
 
 A web-based **Library Management System** built with **Python 3**, **Flask**, **SQLite**, and **SQLAlchemy**, following a strict **Model-View-Controller (MVC)** architecture. Features an engaging modern UI ("Neo-Lumina" aesthetic) with electric indigo & aurora accents, glassmorphic floating navigation, interactive Chart.js visualizations, and responsive Dark/Light mode.
 
